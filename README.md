@@ -1,45 +1,43 @@
-# Hydrogen template: Skeleton
+# CARVE_CE_HYDROGEN
 
-Hydrogen is Shopify’s stack for headless commerce. Hydrogen is designed to dovetail with [Remix](https://remix.run/), Shopify’s full stack web framework. This template contains a **minimal setup** of components, queries and tooling to get started with Hydrogen.
+A Shopify Hydrogen project for **Carve Designs**. The storefront itself is **not publicly browsable** — this app currently runs only as a webhook receiver on Oxygen.
 
-[Check out Hydrogen docs](https://shopify.dev/custom-storefronts/hydrogen)
-[Get familiar with Remix](https://remix.run/docs/en/v1)
+## Current state: webhook-only
 
-## What's included
+Every request is hard-blocked with `503 Service unavailable` except paths under `/webhooks/*`, which are allowed through. This is enforced at the top of the fetch handler in [`server.ts`](./server.ts), before Hydrogen builds any request context (storefront client, cart, session, etc.), so blocked requests do no extra work.
 
-- Remix
-- Hydrogen
-- Oxygen
-- Vite
-- Shopify CLI
-- ESLint
-- Prettier
-- GraphQL generator
-- TypeScript and JavaScript flavors
-- Minimal setup of components and routes
+Because the storefront pages aren't served, the standard Hydrogen skeleton routes and UI components (home, product/collection pages, cart, account, search, blogs, policies, sitemap, robots.txt, `PageLayout`/`Header`/`Footer`, etc.) have been removed. `app/root.tsx` is a bare HTML shell with no layout or storefront queries. `app/lib` and `app/graphql` still contain some Hydrogen scaffolding (session, cart fragment, customer-account queries) that isn't currently wired to anything, kept in case the storefront is re-enabled later.
 
-## Getting started
+### Existing webhook: Okendo
 
-**Requirements:**
+[`app/routes/webhooks.okendo.tsx`](./app/routes/webhooks.okendo.tsx) receives `survey_response` webhooks from Okendo (post-purchase surveys):
 
-- Node.js version 18.0.0 or higher
+1. Verifies the payload's Svix signature (`webhook-id` / `webhook-timestamp` / `webhook-signature` headers) against `OKENDO_WEBHOOK_SECRET`.
+2. Formats each answered question into a Triple Whale PPS (Post-Purchase Survey) record.
+3. Forwards the records to Triple Whale's Data-In API (`TRIPLE_WHALE_API_KEY`) for attribution analytics, fire-and-forget via `context.waitUntil`.
 
-```bash
-npm create @shopify/hydrogen@latest
-```
+### Adding a new webhook
 
-## Building for production
+Add a route file under `app/routes/webhooks.<name>.tsx`. No changes to `server.ts` are needed — the allowlist matches any path under `/webhooks/`.
 
-```bash
-npm run build
-```
+## Environment variables
 
-## Local development
+| Variable | Purpose |
+| --- | --- |
+| `OKENDO_WEBHOOK_SECRET` | Svix signing secret used to verify incoming Okendo webhooks |
+| `TRIPLE_WHALE_API_KEY` | API key for posting PPS records to Triple Whale |
+| `PUBLIC_STORE_DOMAIN` | Shop domain, sent as the `shop` field in Triple Whale PPS records |
+| `SESSION_SECRET` | Required by Hydrogen's session setup in `app/lib/context.ts` |
+
+## Commands
 
 ```bash
-npm run dev
+npm run dev         # Local dev via Shopify CLI (Hydrogen + Oxygen emulator)
+npm run build       # Production build (Vite + codegen)
+npm run preview     # Serve the production build locally
+npm run typecheck   # react-router typegen + tsc --noEmit
+npm run codegen     # Regenerate GraphQL types from storefront/customer-account schemas
+npm run lint        # ESLint
 ```
 
-## Setup for using Customer Account API (`/account` section)
-
-Follow step 1 and 2 of <https://shopify.dev/docs/custom-storefronts/building-with-the-customer-account-api/hydrogen#step-1-set-up-a-public-domain-for-local-development>
+Deploys to Shopify Oxygen.
