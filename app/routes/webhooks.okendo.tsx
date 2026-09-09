@@ -70,7 +70,7 @@ export async function action({request, context}: Route.ActionArgs) {
   // POST to Triple Whale completes after this response is returned. They
   // require a 200 within 15s, so we don't await it inline.
   context.waitUntil?.(
-    processOkendoWebhook(payload, context.env.TRIPLE_WHALE_API_KEY).catch(
+    processOkendoWebhook(payload, context.env.TRIPLE_WHALE_API_KEY, context.env.PUBLIC_STORE_DOMAIN).catch(
       (err) => console.error('[Okendo Webhook] Async processing failed:', err),
     ),
   );
@@ -176,12 +176,11 @@ interface OkendoWebhookPayload {
 }
 
 interface TripleWhalePPSRecord {
-  // available fields, but not being used
-  // shop: string;
-  // shop_name: string;
+  shop: string;
   order_id: string;
-  // platform: string;
   platform_account_id: string;
+  // available fields, but not being used
+  // platform: string;
   created_at: string;
   // question_id: string;
   question_text: string;
@@ -223,15 +222,14 @@ function formatAnswer(question: OkendoQuestion): string {
   return formatted;
 }
 
-function buildPPSRecords(payload: OkendoWebhookPayload): TripleWhalePPSRecord[] {
+function buildPPSRecords(payload: OkendoWebhookPayload, publicStoreDomain: string): TripleWhalePPSRecord[] {
   const {resource} = payload;
 
   return resource.answeredQuestions.map((q) => ({
-    // available fields, but not being used
-    // shop,
-    // shop_name: "carvedesigns",
+    shop: publicStoreDomain,
     order_id: resource.order.remoteOrderId,
     platform_account_id: resource.subscriberId,
+    // available fields, but not being used
     // platform: "okendo",
     created_at: resource.dateCreated,
     // question_id: q.id,
@@ -249,6 +247,7 @@ function buildPPSRecords(payload: OkendoWebhookPayload): TripleWhalePPSRecord[] 
 async function processOkendoWebhook(
   payload: unknown,
   apiKey: string | undefined,
+  publicStoreDomain: string,
 ) {
   const typed = payload as OkendoWebhookPayload;
 
@@ -259,7 +258,7 @@ async function processOkendoWebhook(
     return;
   }
 
-  const ppsRecords = buildPPSRecords(typed);
+  const ppsRecords = buildPPSRecords(typed, publicStoreDomain);
 
   if (!apiKey) {
     console.error(
@@ -283,7 +282,7 @@ async function processOkendoWebhook(
       if (!res.ok) {
         console.error(
           `[Okendo Webhook] Triple Whale PPS #${i + 1} failed (${res.status}):`,
-          body,
+          body
         );
         throw new Error(`HTTP ${res.status}: ${body}`);
       }

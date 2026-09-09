@@ -10,5 +10,6 @@ declare global {
   interface Env {
     OKENDO_WEBHOOK_SECRET: string;
     TRIPLE_WHALE_API_KEY: string;
+    PUBLIC_STORE_DOMAIN: string;
   }
 }
