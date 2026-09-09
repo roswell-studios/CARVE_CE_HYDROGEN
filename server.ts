@@ -2,6 +2,12 @@ import * as serverBuild from 'virtual:react-router/server-build';
 import {createRequestHandler, storefrontRedirect} from '@shopify/hydrogen';
 import {createHydrogenRouterContext} from '~/lib/context';
 
+// This storefront is not publicly browsable. Only webhook receivers
+// (under /webhooks/*) are allowed through; everything else is hard-blocked.
+function isAllowedPath(pathname: string): boolean {
+  return pathname === '/webhooks' || pathname.startsWith('/webhooks/');
+}
+
 /**
  * Export a fetch handler in module format.
  */
@@ -11,6 +17,11 @@ export default {
     env: Env,
     executionContext: ExecutionContext,
   ): Promise<Response> {
+    const {pathname} = new URL(request.url);
+    if (!isAllowedPath(pathname)) {
+      return new Response('Service unavailable', {status: 503});
+    }
+
     try {
       const hydrogenContext = await createHydrogenRouterContext(
         request,
