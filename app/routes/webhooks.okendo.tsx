@@ -286,6 +286,12 @@ async function processOkendoWebhook(
         );
         throw new Error(`HTTP ${res.status}: ${body}`);
       }
+      else {
+        console.log(
+          `[Okendo Webhook] Triple Whale PPS #${i + 1} success:`,
+          body
+        );
+      }
 
       return body;
     }),
