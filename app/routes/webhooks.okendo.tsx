@@ -269,27 +269,30 @@ async function processOkendoWebhook(
 
   const results = await Promise.allSettled(
     ppsRecords.map(async (record, i) => {
+      const twBody = JSON.stringify(record);
       const res = await fetch('https://api.triplewhale.com/api/v2/data-in/pps', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-api-key': apiKey,
         },
-        body: JSON.stringify(record),
+        body: twBody,
       });
-
+      
       const body = await res.text();
       if (!res.ok) {
         console.error(
           `[Okendo Webhook] Triple Whale PPS #${i + 1} failed (${res.status}):`,
           body
         );
-        throw new Error(`HTTP ${res.status}: ${body}`);
+        throw new Error(`HTTP ${res.status}: ${body}; twBody: ${twBody}`);
       }
       else {
         console.log(
           `[Okendo Webhook] Triple Whale PPS #${i + 1} success:`,
-          body
+          body,
+          'twBody:',
+          twBody
         );
       }
 
