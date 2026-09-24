@@ -230,17 +230,16 @@ function buildPPSRecords(payload: OkendoWebhookPayload, publicStoreDomain: strin
     order_id: resource.order.remoteOrderId,
     platform_account_id: resource.subscriberId,
     // available fields, but not being used
-    // platform: "okendo",
+    platform: "okendo",
     created_at: resource.dateCreated,
-    // question_id: q.id,
+    question_id: q.id,
     question_text: q.text,
     // question_type: "standard",
     // response_id: resource.surveyResponseId,
     response: formatAnswer(q),
     // customer_email: resource.customer.email,
     // customer_id: resource.customer.customerId,
-    // survey_type: "okendo",
-    // source: "pps-okendo",
+    source: "pps-okendo",
   }));
 }
 
